@@ -205,7 +205,8 @@ def main(core, source):
     default = run('default-disabled', [sys.executable, __file__, '--probe', 'default', str(good)])
     for key, value in {'allowed_roots': [str(fixtures)], 'scratch_dir': str(scratch)}.items():
         run('configure-' + key, cli + ['config', 'set',
-            'plugins.entries.backup-sentinel.settings.' + key, json.dumps(value)])
+            'plugins.entries.backup-sentinel.settings.' + key,
+            value if isinstance(value, str) else json.dumps(value)])
     outside = home / ('outside-' + good.name)
     outside.write_bytes(b'owned, outside allowed roots')
     refused = run('outside-root', [sys.executable, __file__, '--probe', 'outside', str(outside)])
