@@ -23,7 +23,7 @@ def resolve_native_path(target):
     path = Path(target)
     if not path.is_absolute():
         from agent.runtime_cwd import resolve_agent_cwd
-        cwd = absolute_path(resolve_agent_cwd())
+        cwd = absolute_path(str(resolve_agent_cwd()))
         path = cwd / path
     # Never resolve() or normpath() before alias/parent traversal checks.
     return absolute_path(str(path))

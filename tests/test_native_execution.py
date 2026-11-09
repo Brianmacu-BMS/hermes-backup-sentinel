@@ -181,7 +181,7 @@ class NativeExecutionTests(unittest.TestCase):
     def test_session_relative_native_path_uses_invocation_cwd(self):
         path = self.archive()
         module = types.ModuleType('agent.runtime_cwd')
-        module.resolve_agent_cwd = lambda: str(self.backups)
+        module.resolve_agent_cwd = lambda: self.backups
         before = Path.cwd()
         with patch.dict(sys.modules, {'agent.runtime_cwd': module}):
             actual = json.loads(self.host.tools['backup_sentinel_audit']['handler']({'target': path.name}))
@@ -192,7 +192,7 @@ class NativeExecutionTests(unittest.TestCase):
         path = self.archive()
         (self.backups / 'alias').symlink_to(path)
         module = types.ModuleType('agent.runtime_cwd')
-        module.resolve_agent_cwd = lambda: str(self.backups)
+        module.resolve_agent_cwd = lambda: self.backups
         with patch.dict(sys.modules, {'agent.runtime_cwd': module}):
             actual = json.loads(self.host.tools['backup_sentinel_audit']['handler']({'target': 'alias'}))
         self.assertEqual(actual['status'], 'ERROR')
