@@ -1,0 +1,79 @@
+{
+  "name": "backup-sentinel",
+  "version": "0.1.0",
+  "description": "Offline local tar.gz backup integrity, freshness, required-file and SQLite auditing; never a restore guarantee.",
+  "author": "Brianmacu-BMS",
+  "license": "MIT",
+  "requires_hermes": ">=0.22.5",
+  "platforms": [
+    "linux"
+  ],
+  "provides_tools": [
+    "backup_sentinel_audit"
+  ],
+  "provides_hooks": [],
+  "provides_middleware": [],
+  "requires_env": [],
+  "python_dependencies": [],
+  "config_schema": {
+    "allowed_roots": {
+      "type": "list",
+      "default": [],
+      "description": "Explicit allowed archive roots; empty disables native audits"
+    },
+    "scratch_dir": {
+      "type": "str",
+      "default": "",
+      "description": "Existing private scratch directory outside backups"
+    },
+    "prefix": {
+      "type": "str",
+      "default": "backup-",
+      "description": "Literal PREFIX in PREFIXYYYYMMDD.tar.gz"
+    },
+    "required_members": {
+      "type": "list",
+      "default": [
+        ".hermes/state.db"
+      ],
+      "description": "Required unique regular member names"
+    },
+    "sqlite_members": {
+      "type": "list",
+      "default": [
+        ".hermes/state.db"
+      ],
+      "description": "Explicit noncredential SQLite snapshots to check"
+    },
+    "max_age_days": {
+      "type": "int",
+      "default": 2,
+      "description": "Maximum age by filename date"
+    },
+    "max_compressed_bytes": {
+      "type": "int",
+      "default": 268435456,
+      "description": "Compressed archive byte budget"
+    },
+    "max_uncompressed_bytes": {
+      "type": "int",
+      "default": 536870912,
+      "description": "Complete decompressed stream budget"
+    },
+    "max_db_bytes": {
+      "type": "int",
+      "default": 33554432,
+      "description": "Per-database materialization budget"
+    },
+    "max_members": {
+      "type": "int",
+      "default": 4096,
+      "description": "Archive member and directory entry budgets"
+    },
+    "timeout_seconds": {
+      "type": "int",
+      "default": 30,
+      "description": "Worker wall budget, maximum 300 seconds"
+    }
+  }
+}

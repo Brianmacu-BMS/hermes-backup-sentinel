@@ -1,0 +1,37 @@
+name: Source tests (no Hermes activation)
+
+"on":
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  standalone:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Run source tests, optimized tests and synthetic demo
+        env:
+          TMPDIR: ${{ runner.temp }}
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          sh scripts/run_tests.sh
+          python -O -B -m unittest discover -s tests -v
+          python -B scripts/demo.py
+      - name: Build reviewable-source release
+        env:
+          TMPDIR: ${{ runner.temp }}
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python -B scripts/build_release.py --output "$TMPDIR/backup-sentinel-0.1.0.zip"

@@ -1,0 +1,86 @@
+name: Disposable installed interfaces
+
+"on":
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  native-installed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - version: "0.22.5"
+            commit: bf0203a794a07aac3ff764972ab9087baa4e4f4e
+          - version: "0.23.0"
+            commit: 2bd378ed1b8d6bf2192cb26e0a55ff3091e6bd19
+    env:
+      HERMES_CORE_ROOT: ${{ github.workspace }}/hermes-core
+      BACKUP_SENTINEL_SOURCE: ${{ github.workspace }}/backup-sentinel
+
+      PYTHONDONTWRITEBYTECODE: "1"
+      UV_NO_CONFIG: "1"
+    steps:
+      - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a # v7.0.1
+        with:
+          persist-credentials: false
+          path: backup-sentinel
+      - uses: actions/checkout@f548e57e544e1ff5a4c46bf1e1b8685f8e4a348a # v7.0.1
+        with:
+          persist-credentials: false
+          repository: NousResearch/hermes-agent
+          ref: ${{ matrix.commit }}
+          path: hermes-core
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - name: Check separate-machine and state-root boundaries before setup
+        shell: bash
+        env:
+          HERMES_HOME: ${{ runner.temp }}/installed/data
+          HERMES_RUNTIME_DIR: ${{ runner.temp }}/installed/runtime
+          HOME: ${{ runner.temp }}/installed/home
+          TMPDIR: ${{ runner.temp }}/installed/tmp
+        run: |
+          mkdir -p "$HOME" "$TMPDIR" "$HERMES_HOME" "$HERMES_RUNTIME_DIR"
+          test "$(git -C "$HERMES_CORE_ROOT" rev-parse HEAD)" = "${{ matrix.commit }}"
+          python "$BACKUP_SENTINEL_SOURCE/tests/native_installed_acceptance.py" --guard-only
+      - name: Bootstrap pinned Hermes through its documented PM entry point
+        shell: bash
+        env:
+          HERMES_HOME: ${{ runner.temp }}/installed/data
+          HERMES_RUNTIME_DIR: ${{ runner.temp }}/installed/runtime
+          HOME: ${{ runner.temp }}/installed/home
+          TMPDIR: ${{ runner.temp }}/installed/tmp
+        run: |
+          cd "$HERMES_CORE_ROOT"
+          bash setup-hermes.sh --runtime-only
+      - name: Install exact trusted source pin only in this disposable runner
+        shell: bash
+        env:
+          HERMES_HOME: ${{ runner.temp }}/installed/data
+          HERMES_RUNTIME_DIR: ${{ runner.temp }}/installed/runtime
+          HOME: ${{ runner.temp }}/installed/home
+          TMPDIR: ${{ runner.temp }}/installed/tmp
+        run: |
+          cd "$HERMES_CORE_ROOT"
+          pin="$(git -C "$BACKUP_SENTINEL_SOURCE" rev-parse HEAD)"
+          test ! -e "$HERMES_HOME/plugins/backup-sentinel"
+          # Explicit trusted test-source admission; retain scanner warnings.
+          # --force does not disable scanning or accept dangerous blocks.
+          scripts/run-in-hermes-env python hermes plugins install "file://$BACKUP_SENTINEL_SOURCE" --ref "$pin" --enable --yes-deps --force
+      - name: Real discovery, registered interfaces, denial and trusted validation
+        shell: bash
+        env:
+          HERMES_HOME: ${{ runner.temp }}/installed/data
+          HERMES_RUNTIME_DIR: ${{ runner.temp }}/installed/runtime
+          HOME: ${{ runner.temp }}/installed/home
+          TMPDIR: ${{ runner.temp }}/installed/tmp
+        run: |
+          cd "$HERMES_CORE_ROOT"
+          # Use PM's selected application interpreter, not the separate test env.
+          scripts/run-in-hermes-env python -c 'import os; from pm.environments import project_python; from pathlib import Path; core=Path(os.environ["HERMES_CORE_ROOT"]); executable=str(project_python(core)); os.execv(executable, [executable, os.environ["BACKUP_SENTINEL_SOURCE"] + "/tests/native_installed_acceptance.py"])'
